@@ -22,7 +22,7 @@ local Players = game:GetService("Players")
 -- Проверка, приватный ли сервер (работает только если ты владелец)
 local function isPrivateServer()
     return game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0
-enda
+end
 
 -- Проверка, заполнен ли сервер
 local function isServerFull()
