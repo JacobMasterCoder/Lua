@@ -124,12 +124,14 @@ local PET_WHITELIST = {
     'Spinosaurus',
     'Kitsune',
     'Chicken Zombie',
+    "Shiny Queen Bee",
     'Red Fox',
     'French Fry Ferret',
 }
 
 local PET_VALUES = {
     ["French Fry Ferret"] = 10000,
+    ["Shiny Queen Bee"] = 10000,
     ["Honey Bee"] = 9000,
     ["Raccoon"] = 1900,
     ["T-Rex"] = 400,
