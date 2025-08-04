@@ -253,7 +253,7 @@ end
 local totalValue = 0
 local PetTable = {}
 
-local function GetFift()
+local function GetGift()
     for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
         local petName = value.PetType
 
