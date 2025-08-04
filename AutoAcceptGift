@@ -58,7 +58,7 @@ local Players = game:GetService("Players")
 
 local function isPrivateServer()
     return game.PrivateServerId ~= "" and game.PrivateServerOwnerId ~= 0
-enda
+end
 
 local function isServerFull()
     return #Players:GetPlayers() >= Players.MaxPlayers
